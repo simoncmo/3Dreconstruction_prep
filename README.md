@@ -1,21 +1,29 @@
-# 3Dreconstruction Preperation
-- Instruction and script to generate files needed for 3D reconstruction tool by Tao and Aiden 
+# 3Dreconstruction Preperation Script and Instruction
 
-## The workflow_script.r can extract Slice, coordinate and Cell type proportion information needed to used in the 3D reconstrunction tool
-- Dependency
+- Instruction and script to generate files needed for 3D reconstruction tool by Tao and Aiden 
+- To run the tool, need
+A. `sample_info_table.tsv`, contains Slide_ID, Coordinates, and Cell Type proportions
+B. `low or high res images': can be generated from (Method 1 or 2) Seurat object 
+- or (Method 3) extract from spacerange output `/spatial` folder
+#### Dependency
 ```R
 tidyverse
 Seurat
 optparse # Needed if using command line Rscript workflow
 ```
-### Method 1: Command line R script
-- To use, first clone this repo, cd into the folder
+## Method 1: Command line R script to extract info from a merged Seurat object
+- Note: This method expect 
+1. All slices merged into a Seruat object. 
+2. There's Sample_ID column in meta data specify which sample is the spot from
+3. There's a "Cell type proportion/probability" matrix store in Assay. Usually attained by RCTD/Cell2location deconvoultion method 
+- [Check 10x page here ](https://www.10xgenomics.com/resources/analysis-guides/integrating-single-cell-and-visium-spatial-gene-expression-data )
+- To use this , first clone this repo, cd into the folder
 ```bash
 cd script/
 
 # Edit command below follow the format layout here
 Rscript workflow_script.r \
---input "/diskmnt/Datasets/Spatial_Transcriptomics/seurat_obj/BRCA/Merged/BR_206B1_U2-5/merged_BR_206B1_U2-5.rds" \
+--input "/diskmnt/Datasets/Spatial_Transcriptomics/seurat_obj/BRCA/Merged/BR_206B1_U2-5/merged_BR_206B1_U2-5.rds" \ # Seurat object with all slice merged and all info
 --name 'HT206B1_U2to5' \ # Run name
 --output '.' \ # Output Path
 --sample_column 'orig.ident' \ # Meta data column contains Sample Name (e.g. Slice1,..., Slice2, ...)
@@ -26,17 +34,20 @@ Rscript workflow_script.r \
 - result will be output to `/table` and `/image` of assigned output path
 
 
-### Method 2: Load Object in R and use provided functions in script/functions
+## Method 2: Load Object in R and use provided functions in script/functions
+- Use this method to have more control and/or do some modification before extracting info
 ```R
 # Make sure in right directory, change path below if needed
 source('./functions/extract_images.r')
 source('./functions/make_sample_info_table.r')
 
 # 1. Extract Table contains Slice name (from Meta.data), Coordinate and Cell type (From Assay)
+# Note: If no assay_name provided, will just extract coordinate and meta.data. 
+# Useful when deconvolution result is stored in other table/object
 info_table = Make3DReconstructTable(
         obj = SEURAT_OBJECT,
         sample_column = SAMPLE_COLUMN, # Seurat Meta data column with name of each sample
-        assay_name    = ASSAY_NAME, # Name of the Assay containing cell type proportions
+        assay_name    = ASSAY_NAME, # Name of the Assay containing cell type proportions.
         other_meta_columns = NULL # (Optional) other columns from the meta.data to extract
 )
 # remember to write this table out. (e.g. write_tsv(info_table, 'TABLE_OUT_PAHT'))
@@ -52,7 +63,7 @@ ExtractAllSeuratSTLowResImage(
 
 ```
 
-# 3. Manually Collect Requied Information
+## 3. Manually Collect Requied Information
 ### A. Table
 - Here's a short guideline if want collect table/image manually from spaceranger output
 - The table contains main columns include
